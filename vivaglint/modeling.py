@@ -75,7 +75,9 @@ def _splits(frame: pd.DataFrame, config: dict[str, Any]):
     if not group or group not in frame or frame[group].isna().any():
         raise ValueError("A complete respondent/group key is required for leakage checks.")
     if mode == "group":
-        splitter = GroupShuffleSplit(n_splits=1, test_size=fraction, random_state=config["seed"])
+        splitter = GroupShuffleSplit(
+            n_splits=1, test_size=fraction, random_state=config.get("split_seed", config["seed"])
+        )
         development, holdout = next(splitter.split(frame, groups=frame[group]))
         cv = list(GroupKFold(n_splits=folds).split(
             frame.iloc[development], groups=frame.iloc[development][group]
@@ -226,6 +228,7 @@ def run_model_experiment(
         Local respondent data. The caller owns consent and safe output handling.
     config : dict
         Confirmed features, task, validation design, candidates and resource limits.
+        ``split_seed`` can fix the holdout independently of estimator ``seed``.
         Identifiers may define splits but cannot be features.
     tuning_authorized : bool
         Explicit permission for the finite parameter grids in this experiment.

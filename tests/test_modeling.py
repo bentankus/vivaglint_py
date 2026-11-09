@@ -96,6 +96,14 @@ def test_chronological_folds_preserve_dates_and_reject_group_overlap(experiment)
         _splits(frame, config)
 
 
+def test_model_seed_can_change_without_moving_the_reserved_holdout(experiment):
+    frame, config = experiment
+    expected = _splits(frame, config)[1]
+    config["split_seed"] = config["seed"]
+    config["seed"] += 1
+    assert np.array_equal(expected, _splits(frame, config)[1])
+
+
 def test_classification_metrics_and_rare_class_gates(experiment):
     frame, config = experiment
     frame["Q_outcome"] = (frame["Q_work"] > 3).astype(int)
