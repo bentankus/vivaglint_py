@@ -17,7 +17,7 @@ import pandas as pd
 
 METHODS = {"dummy", "linear", "random_forest", "gradient_boosting", "extra_trees"}
 UNSAFE = re.compile(
-    r"(^|[_\W])(id|name|email|address|comment|manager|age|gender|race|ethnicity|"
+    r"(^|[_\W])(id|name|email|address|comment|age|gender|race|ethnicity|"
     r"religion|disability|salary|attrition|exit|termination|risk)([_\W]|$)",
     re.IGNORECASE,
 )
@@ -32,7 +32,7 @@ def _validate(frame: pd.DataFrame, config: dict[str, Any]) -> None:
     protected = {config.get("target"), config.get("group"), config.get("time")}
     protected.update(config.get("exclude", []))
     for column in features:
-        if column in protected or UNSAFE.search(column):
+        if column in protected or UNSAFE.search(column) or column.casefold() == "manager":
             raise ValueError("A feature is identifying, sensitive, excluded, or target-derived.")
         if column not in frame or frame[column].isna().all():
             raise ValueError("A selected feature is missing or entirely empty.")
@@ -413,6 +413,7 @@ def run_model_experiment(
         "selected_model": winner["candidate"],
         "score_units": "0-100 points" if config.get("score_scale") else "native",
         "holdout_evaluated": evaluate_holdout,
+        "class_codes": classes.tolist() if classes is not None else None,
         "warnings": [
             "Prediction and permutation importance do not establish causal effects.",
             "Fold standard deviations are not confidence intervals.",

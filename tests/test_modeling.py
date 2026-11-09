@@ -168,3 +168,10 @@ def test_target_copy_and_sparse_confusion_are_not_shared(experiment):
     result = run_model_experiment(frame, frozen, evaluate_holdout=True)
     assert result["summary"]["models"][0]["confusion_matrix"] is None
     assert result["summary"]["models"][0]["calibration"] is None
+
+
+def test_manager_survey_item_is_not_confused_with_manager_identity(experiment):
+    frame, config = experiment
+    frame["Q_manager_support"] = frame["Q_work"] + 0.1
+    config["features"].append("Q_manager_support")
+    assert run_model_experiment(frame, config)["summary"]["models"]
