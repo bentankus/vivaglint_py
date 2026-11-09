@@ -44,6 +44,10 @@ def _validate(frame: pd.DataFrame, config: dict[str, Any]) -> None:
         not target or target not in frame or UNSAFE.search(target)
     ):
         raise ValueError("A safe, explicit survey target is required.")
+    if config["task"] != "svd":
+        for column in features:
+            if frame[column].equals(frame[target]):
+                raise ValueError("A predictor is an exact copy of the target.")
     if config["task"] == "svd" and any(
         not pd.api.types.is_numeric_dtype(frame[col]) for col in features
     ):
@@ -360,8 +364,14 @@ def run_model_experiment(
                     from sklearn.metrics import confusion_matrix
 
                     matrix = confusion_matrix(target.iloc[holdout], prediction, labels=classes)
+                    support = [
+                        frame.iloc[holdout[
+                            (target.iloc[holdout].to_numpy() == actual) & (prediction == predicted)
+                        ]][config["group"]].nunique()
+                        for actual in classes for predicted in classes
+                    ]
                     # Suppress the entire matrix, including margins, if any cell is small.
-                    row["confusion_matrix"] = matrix.tolist() if (matrix >= minimum).all() else None
+                    row["confusion_matrix"] = matrix.tolist() if min(support) >= minimum else None
                     row["calibration"] = None
                     if len(classes) == 2:
                         bins = np.minimum((probability[:, 1] * 5).astype(int), 4)

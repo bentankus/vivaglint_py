@@ -151,3 +151,20 @@ def test_categorical_preparation_and_missing_inputs(experiment):
     frame["Q_resources"] = np.nan
     with pytest.raises(ValueError, match="empty"):
         run_model_experiment(frame, config)
+
+
+def test_target_copy_and_sparse_confusion_are_not_shared(experiment):
+    frame, config = experiment
+    frame["Q_copy"] = frame["Q_outcome"]
+    config["features"].append("Q_copy")
+    with pytest.raises(ValueError, match="copy"):
+        run_model_experiment(frame, config)
+    config["features"].remove("Q_copy")
+    frame["Q_outcome"] = (frame["Q_work"] > 3).astype(int)
+    config.update(task="classification", metric="accuracy")
+    config.pop("score_scale")
+    config["models"] = [{"id": "tree", "method": "random_forest", "parameters": {"n_estimators": 20}}]
+    frozen = run_model_experiment(frame, config)["frozen_config"]
+    result = run_model_experiment(frame, frozen, evaluate_holdout=True)
+    assert result["summary"]["models"][0]["confusion_matrix"] is None
+    assert result["summary"]["models"][0]["calibration"] is None
